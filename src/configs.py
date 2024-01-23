@@ -8,7 +8,7 @@ LOGGER_FORMAT = ('%(levelname)s - %(asctime)s - %(lineno)s - %(funcName)s - '
                  '%(message)s - %(name)s')
 
 
-def configure_parser(modes):
+def configure_argument_parser(modes):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'mode',
@@ -30,7 +30,7 @@ def configure_parser(modes):
     return parser
 
 
-def configure_logger():
+def configure_logging():
     log_dir = BASE_DIR / 'logs'
     log_dir.mkdir(exist_ok=True)
     log_file = log_dir / 'parser.log'

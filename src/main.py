@@ -6,9 +6,9 @@ import requests_cache
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from configs import configure_parser, configure_logger
+from configs import configure_argument_parser, configure_logging
 from constants import MAIN_DOC_URL, BASE_DIR
-from handlers import find_tag
+from utils import find_tag
 from outputs import control_output
 
 
@@ -90,9 +90,9 @@ MODE_TO_FUNCTION = {
 
 
 def main():
-    configure_logger()
+    configure_logging()
     logging.info('Парсер запущен')
-    arg_parser = configure_parser(MODE_TO_FUNCTION.keys())
+    arg_parser = configure_argument_parser(MODE_TO_FUNCTION.keys())
     args = arg_parser.parse_args()
     logging.info(f'Аргументы командной строки: {args}')
     session = requests_cache.CachedSession()
