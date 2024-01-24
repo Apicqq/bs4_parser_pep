@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
-from constants import MAIN_DOC_URL, BASE_DIR
+from constants import MAIN_DOC_URL, BASE_DIR, PEP_MAIN_URL, EXPECTED_STATUS
 from utils import find_tag
 from outputs import control_output
 
@@ -53,7 +53,7 @@ def latest_versions(session):
     for a_tag in tqdm(a_tags, 'Собираем ссылки', colour='green'):
         link = a_tag['href']
         text_match = re.search(pattern, a_tag.text)
-        if text_match is not None:
+        if text_match:
             version, status = text_match.groups()
         else:
             version, status = a_tag.text, ''
@@ -82,10 +82,51 @@ def download(session):
     logging.info(f'Архив был загружен и сохранён: {archive_path}')
 
 
+def pep(session):
+    response = session.get(PEP_MAIN_URL)
+    soup = BeautifulSoup(response.text, 'lxml')
+    pep_relative_links = sorted(set([link.get('href') for link in soup.select(
+        'section#numerical-index .pep-zero-table.docutils.align-default a')]))
+    print(pep_relative_links)
+    table_statuses = [
+        abbr.text[1:] for abbr in soup.find(
+            'section', attrs={'id': 'numerical-index'}
+        ).find(
+            class_='pep-zero-table docutils align-default'
+        )(
+            'abbr', string=re.compile(r'^\w*$')
+        )
+    ]
+    pep_status_codes = {}
+    results = [('Статус', 'Количество')]
+    for number, url in enumerate(pep_relative_links):
+        response = session.get(urljoin(PEP_MAIN_URL, url))
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'lxml')
+            page_status = soup.find(class_='rfc2822 field-list simple').find(
+                'abbr').string
+            if (page_status and page_status not in
+                    EXPECTED_STATUS.get(table_statuses[number])):
+                print(
+                    'Несовпадающие статусы:\n'
+                    f'{urljoin(PEP_MAIN_URL, url)}\n'
+                    f'Статус в карточке: {page_status}\n'
+                    f'Ожидаемые статусы:'
+                    f' {EXPECTED_STATUS.get(table_statuses[number])}'
+                )
+            if page_status not in pep_status_codes:
+                pep_status_codes[page_status] = 1
+            else:
+                pep_status_codes[page_status] += 1
+    results.extend(list(pep_status_codes.items()))
+    return results
+
+
 MODE_TO_FUNCTION = {
     'whats-new': whats_new,
     'latest-versions': latest_versions,
     'download': download,
+    'pep': pep
 }
 
 
