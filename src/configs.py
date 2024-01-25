@@ -2,13 +2,27 @@ import argparse
 import logging
 from logging.handlers import RotatingFileHandler
 
+from requests_cache import CachedSession
+
 from constants import BASE_DIR, LOGGER_DT_FORMAT
 
 LOGGER_FORMAT = ('%(levelname)s - %(asctime)s - %(lineno)s - %(funcName)s - '
                  '%(message)s - %(name)s')
 
 
-def configure_argument_parser(modes):
+def configure_argument_parser(
+        modes: dict[str, CachedSession].keys
+) -> argparse.ArgumentParser:
+    """
+    Настраивает ArgumentParser для командной строки.
+
+    Args:
+    - modes: list[str] - Список режимов работы.
+
+    Returns:
+    - parser: ArgumentParser - Сконфигурированный парсер аргументов
+    командной строки.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'mode',
@@ -19,18 +33,27 @@ def configure_argument_parser(modes):
         '-c',
         '--clear-cache',
         action='store_true',
-        help='Очистить кэш'
+        help='Очистка кеша'
     )
     parser.add_argument(
         '-o',
         '--output',
         choices=('pretty', 'file'),
-        help='Формат вывода'
+        help='Дополнительные способы вывода данных'
     )
     return parser
 
 
-def configure_logging():
+def configure_logging() -> None:
+    """
+    Настраивает логирование для приложения.
+
+    Создает каталог для логов, если его не существует,
+     и настраивает RotatingHandler для записи логов в файл.
+
+    Returns:
+    - None
+    """
     log_dir = BASE_DIR / 'logs'
     log_dir.mkdir(exist_ok=True)
     log_file = log_dir / 'parser.log'
