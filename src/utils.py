@@ -1,3 +1,6 @@
+# Название этого файла — антипаттерн. Логичнее его было бы назвать, например,
+# services или helpers.
+
 import logging
 from typing import Optional
 
