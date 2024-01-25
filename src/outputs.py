@@ -15,13 +15,14 @@ def control_output(results: list, cli_args: Namespace) -> None:
     :param cli_args: Аргументы командной строки, включая аргумент для вывода.
     """
     output = cli_args.output
-    match output:
-        case 'pretty':
-            pretty_output(results)
-        case 'file':
-            file_output(results, cli_args)
-        case _:
-            default_output(results)
+    # Изначально сделал, используя match case, но сервера яндекса не
+    # поддерживают питон выше 3.9
+    if output == 'pretty':
+        pretty_output(results)
+    elif output == 'file':
+        file_output(results, cli_args)
+    else:
+        default_output(results)
 
 
 def default_output(results: list) -> None:
