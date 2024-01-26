@@ -4,10 +4,7 @@ from logging.handlers import RotatingFileHandler
 
 from requests_cache import CachedSession
 
-from constants import BASE_DIR, LOGGER_DT_FORMAT
-
-LOGGER_FORMAT = ('%(levelname)s - %(asctime)s - %(lineno)s - %(funcName)s - '
-                 '%(message)s - %(name)s')
+from constants import PathConstants, UtilityConstants
 
 
 def configure_argument_parser(
@@ -38,7 +35,7 @@ def configure_argument_parser(
     parser.add_argument(
         '-o',
         '--output',
-        choices=('pretty', 'file'),
+        choices=UtilityConstants.PARSER_NONDEFAULT_OUTPUT_CHOICES,
         help='Дополнительные способы вывода данных'
     )
     return parser
@@ -54,9 +51,9 @@ def configure_logging() -> None:
     Returns:
     - None
     """
-    log_dir = BASE_DIR / 'logs'
+    log_dir = PathConstants.LOG_DIR
     log_dir.mkdir(exist_ok=True)
-    log_file = log_dir / 'parser.log'
+    log_file = PathConstants.LOG_FILE
     rotating_handler = RotatingFileHandler(
         log_file,
         maxBytes=1_000_000,
@@ -64,8 +61,8 @@ def configure_logging() -> None:
         encoding='utf-8'
     )
     logging.basicConfig(
-        datefmt=LOGGER_DT_FORMAT,
-        format=LOGGER_FORMAT,
+        datefmt=UtilityConstants.LOGGER_DT_FORMAT,
+        format=UtilityConstants.LOGGER_FORMAT,
         level=logging.INFO,
         handlers=(rotating_handler, logging.StreamHandler())
     )
