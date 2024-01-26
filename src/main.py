@@ -10,7 +10,7 @@ from tqdm import tqdm
 from configs import configure_argument_parser, configure_logging
 from constants import (
     Literals, PathConstants, BASE_DIR,
-    MAIN_DOC_URL, PEP_MAIN_URL, EXPECTED_STATUS
+    MAIN_DOC_URL, PEP_MAIN_URL, EXPECTED_STATUS, UtilityConstants
 )
 from outputs import control_output
 from utils import find_tag, get_response, get_soup
@@ -30,18 +30,20 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
     for tag in tqdm(
         get_soup(session, urljoin(MAIN_DOC_URL, 'whatsnew/')).select(
                 '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
-        ), Literals.COLLECTING_URLS, colour=Literals.PROGRESS_BAR_COLOR
+        ), Literals.COLLECTING_URLS, colour=UtilityConstants.PROGRESS_BAR_COLOR
     ):
         version_link = urljoin(
             urljoin(MAIN_DOC_URL, 'whatsnew/'),
-            tag['href']
+            tag.get('href')
         )
         if not version_link:
             continue
         soup = get_soup(session, version_link)
         result.append((version_link, find_tag(soup, 'h1').text,
-                       find_tag(soup, 'dl').text.replace('\n',
-                                                         ' ').strip()))
+                       find_tag(soup, 'dl').text.replace(
+                           '\n', ' '
+                       ).strip()))
+        continue
     return result
 
 
@@ -69,7 +71,11 @@ def latest_versions(session: CachedSession) -> Optional[
         raise RuntimeError(Literals.PYTHON_VERSIONS_NOT_FOUND)
     results = [('Ссылка на документацию', 'Версия', 'Статус')]
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
-    for a_tag in tqdm(a_tags, Literals.COLLECTING_URLS, colour='red'):
+    for a_tag in tqdm(
+            a_tags,
+            Literals.COLLECTING_URLS,
+            colour=UtilityConstants.PROGRESS_BAR_COLOR
+    ):
         text_match = re.search(pattern, a_tag.text)
         if text_match:
             version, status = text_match.groups()
@@ -130,11 +136,13 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
     pep_status_codes = defaultdict(int)
     mismatches = []
     for number, url in tqdm(
-            enumerate(pep_relative_links),
-            Literals.COLLECTING_STATUSES,
-            colour='red',
-            total=len(pep_relative_links)
+        enumerate(pep_relative_links),
+        Literals.COLLECTING_STATUSES,
+        colour=UtilityConstants.PROGRESS_BAR_COLOR,
+        total=len(pep_relative_links)
     ):
+        if not url:
+            continue
         soup = get_soup(session, urljoin(PEP_MAIN_URL, url))
         page_status = soup.select_one('#pep-content > dl abbr').text
         if (page_status and page_status not in
@@ -151,12 +159,11 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
                     EXPECTED_STATUS.get(table_statuses[number])
                 )
             )
-    results = [
+    return [
         ('Статус', 'Количество'),
         *pep_status_codes.items(),
         ('Итого', str(sum(pep_status_codes.values())))
     ]
-    return results
 
 
 MODE_TO_FUNCTION = {
@@ -193,7 +200,7 @@ def main() -> None:
             control_output(results, args)
         logging.info(Literals.PARSER_FINISHED)
     except Exception as error:
-        logging.exception(error)
+        logging.exception(Literals.PARSER_EXCEPTION.format(error))
 
 
 if __name__ == '__main__':
