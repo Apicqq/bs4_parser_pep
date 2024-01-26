@@ -26,21 +26,23 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
     :returns: List[tuple[str, str, str]]: Список кортежей,
     содержащий ссылку на статью, заголовок, и её автора.
     """
-    soup = get_soup(session, urljoin(MAIN_DOC_URL, 'whatsnew/'))
-    sections_by_python = soup.select(
-        '#what-s-new-in-python div.toctree-wrapper li.toctree-l1'
-    )
     result = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
-    for section in tqdm(
-            sections_by_python, Literals.COLLECTING_URLS, colour='red'
+    for tag in tqdm(
+        get_soup(session, urljoin(MAIN_DOC_URL, 'whatsnew/')).select(
+            '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
+        ), Literals.COLLECTING_URLS, colour=Literals.PROGRESS_BAR_COLOR
     ):
         version_link = urljoin(
             urljoin(MAIN_DOC_URL, 'whatsnew/'),
-            find_tag(section, 'a')['href']
+            tag['href']
         )
-        soup = get_soup(session, version_link)
-        result.append((version_link, find_tag(soup, 'h1').text,
-                       find_tag(soup, 'dl').text.replace('\n', ' ').strip()))
+        if not version_link:
+            continue
+        else:
+            soup = get_soup(session, version_link)
+            result.append((version_link, find_tag(soup, 'h1').text,
+                           find_tag(soup, 'dl').text.replace('\n',
+                                                             ' ').strip()))
     return result
 
 
