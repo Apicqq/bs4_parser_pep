@@ -25,6 +25,7 @@ class PathConstants:
 class UtilityConstants:
     PRETTY_OUTPUT_MODE = 'pretty'
     FILE_OUTPUT_MODE = 'file'
+    DEFAULT_OUTPUT_MODE = 'default'
     DATETIME_FORMAT = '%Y-%m-%d_%H-%M-%S'
     LOGGER_DT_FORMAT = '%d.%m.%Y %H:%M:%S'
     LOGGER_FORMAT = (

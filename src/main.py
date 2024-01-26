@@ -28,16 +28,19 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
     """
     result = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
     for tag in tqdm(
-        get_soup(session, urljoin(MAIN_DOC_URL, 'whatsnew/')).select(
+            get_soup(
+                session,
+                urljoin(MAIN_DOC_URL, 'whatsnew/')
+            ).select(
                 '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
-        ), Literals.COLLECTING_URLS, colour=UtilityConstants.PROGRESS_BAR_COLOR
+            ),
+            Literals.COLLECTING_URLS,
+            colour=UtilityConstants.PROGRESS_BAR_COLOR
     ):
         version_link = urljoin(
             urljoin(MAIN_DOC_URL, 'whatsnew/'),
             tag.get('href')
         )
-        if not version_link:
-            continue
         soup = get_soup(session, version_link)
         result.append((version_link, find_tag(soup, 'h1').text,
                        find_tag(soup, 'dl').text.replace(
