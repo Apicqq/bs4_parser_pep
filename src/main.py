@@ -120,7 +120,8 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
     pep_relative_links = sorted(set(
         [url.get('href') for url in soup.select(
             'section#numerical-index .pep-zero-table.docutils.align-default a'
-        )]))
+        )]
+    ))
     table_statuses = [
         abbr.text[1:] for abbr in soup.select(
             'section#numerical-index .pep-zero-table.'
