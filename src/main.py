@@ -90,8 +90,7 @@ def download(session: CachedSession) -> None:
     :returns: None
     """
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
-    soup = get_soup(session, downloads_url)
-    pdf_relative_url = soup.select_one(
+    pdf_relative_url = get_soup(session, downloads_url).select_one(
         'div.body > table.docutils a[href$="pdf-a4.zip"]'
     )['href']
     archive_url = urljoin(downloads_url, pdf_relative_url)
