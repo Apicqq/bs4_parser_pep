@@ -13,11 +13,9 @@ def configure_argument_parser(
     """
     Настраивает ArgumentParser для командной строки.
 
-    Args:
-    - modes: list[str] - Список режимов работы.
+    :param modes: list[str] - Список режимов работы.
 
-    Returns:
-    - parser: ArgumentParser - Сконфигурированный парсер аргументов
+    :returns: ArgumentParser: - Сконфигурированный парсер аргументов
     командной строки.
     """
     parser = argparse.ArgumentParser()
@@ -46,10 +44,9 @@ def configure_logging() -> None:
     Настраивает логирование для приложения.
 
     Создает каталог для логов, если его не существует,
-     и настраивает RotatingHandler для записи логов в файл.
+    и настраивает RotatingHandler для записи логов в файл.
 
-    Returns:
-    - None
+    :returns: None
     """
     log_dir = PathConstants.LOG_DIR
     log_dir.mkdir(exist_ok=True)

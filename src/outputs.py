@@ -13,6 +13,8 @@ def control_output(results: list, cli_args: Namespace) -> None:
 
     :param results: Результаты, которые нужно вывести.
     :param cli_args: Аргументы командной строки, включая аргумент для вывода.
+
+    :returns: None
     """
     output = cli_args.output
     output_methods = {
@@ -29,6 +31,8 @@ def default_output(results: list, *args) -> None:
     Выводит результаты по умолчанию.
 
     :param results: Результаты, которые нужно вывести.
+
+    :returns: None
     """
     for result in results:
         print(*result)
@@ -39,6 +43,8 @@ def pretty_output(results: list, *args) -> None:
     Выводит отформатированную таблицу PrettyTable на основе результатов.
 
     :param results: Результаты, которые нужно вывести.
+
+    :returns: None
     """
     table = PrettyTable()
     table.field_names = results[0]
@@ -54,6 +60,8 @@ def file_output(results: list, cli_args: Namespace) -> None:
 
     :param results: Результаты, которые нужно вывести.
     :param cli_args: Аргументы командной строки, включая режим парсера.
+
+    :returns: None
     """
     results_dir = BASE_DIR / PathConstants.RESULTS_PATH
     results_dir.mkdir(exist_ok=True)

@@ -84,7 +84,6 @@ def download(session: CachedSession) -> None:
     """
     Скачивает архив документации Python и сохраняет его в каталог "downloads".
 
-    Args:
     :param session: CachedSession - сессия, используемая для запроса.
 
     :returns: None
