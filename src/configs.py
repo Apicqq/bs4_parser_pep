@@ -33,9 +33,10 @@ def configure_argument_parser(
     parser.add_argument(
         '-o',
         '--output',
-        choices=
-        (UtilityConstants.PRETTY_OUTPUT_MODE,
-         UtilityConstants.FILE_OUTPUT_MODE),
+        choices=(
+            UtilityConstants.PRETTY_OUTPUT_MODE,
+            UtilityConstants.FILE_OUTPUT_MODE
+        ),
         help='Дополнительные способы вывода данных'
     )
     return parser
