@@ -15,8 +15,6 @@ EXPECTED_STATUS = {
 }
 
 
-# оставил эти константы вне классов, чтобы проходили тесты.
-
 class PathConstants:
     LOG_DIR = BASE_DIR / 'logs'
     DOWNLOADS_PATH = 'downloads'
@@ -32,6 +30,7 @@ class UtilityConstants:
     LOGGER_FORMAT = (
         '%(levelname)s - %(asctime)s - %(lineno)s - %(funcName)s - '
         '%(message)s - %(name)s')
+    PROGRESS_BAR_COLOR = 'red'
 
 
 class Literals:
@@ -43,9 +42,9 @@ class Literals:
     PARSER_STARTED = 'Парсер был запущен'
     PARSER_ARGS = 'Аргументы командной строки: {}'
     PARSER_FINISHED = 'Работа парсера завершена'
-    REQUEST_EXCEPTION = 'Возникла ошибка при загрузке страницы {}'
+    REQUEST_EXCEPTION = 'Возникла ошибка при загрузке страницы {}: {}'
     PYTHON_VERSIONS_NOT_FOUND = 'Не найден список c версиями Python'
     TAG_NOT_FOUND = 'Не найден тег {} {}'
     COLLECTING_URLS = 'Собираем ссылки'
     COLLECTING_STATUSES = 'Собираем статусы'
-    PROGRESS_BAR_COLOR = 'red'
+    PARSER_EXCEPTION = 'Во время работы парсера возникла ошибка: {}'
