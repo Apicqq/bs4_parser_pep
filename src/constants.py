@@ -48,3 +48,4 @@ class Literals:
     TAG_NOT_FOUND = 'Не найден тег {} {}'
     COLLECTING_URLS = 'Собираем ссылки'
     COLLECTING_STATUSES = 'Собираем статусы'
+    PROGRESS_BAR_COLOR = 'red'
