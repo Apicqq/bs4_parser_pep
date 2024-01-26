@@ -1,16 +1,19 @@
+from collections import defaultdict
 import logging
 import re
 from typing import Optional
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
 from requests_cache import CachedSession
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
-from constants import MAIN_DOC_URL, BASE_DIR, PEP_MAIN_URL, EXPECTED_STATUS
+from constants import (
+    Literals, PathConstants, BASE_DIR,
+    MAIN_DOC_URL, PEP_MAIN_URL, EXPECTED_STATUS
+)
 from outputs import control_output
-from utils import find_tag, get_response
+from utils import find_tag, get_response, get_soup
 
 
 def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
@@ -23,26 +26,21 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
     :returns: List[tuple[str, str, str]]: Список кортежей,
     содержащий ссылку на статью, заголовок, и её автора.
     """
-    response = get_response(session, urljoin(MAIN_DOC_URL, 'whatsnew/'))
-    response.encoding = 'utf-8'
-    soup = BeautifulSoup(response.text, 'lxml')
-    main_div = find_tag(soup, 'section', attrs={'id': 'what-s-new-in-python'})
-    url_div = find_tag(main_div, 'div', attrs={'class': 'toctree-wrapper'})
-    sections_by_python = url_div.find_all('li',
-                                          attrs={'class': 'toctree-l1'})
+    soup = get_soup(session, urljoin(MAIN_DOC_URL, 'whatsnew/'))
+    sections_by_python = soup.select(
+        '#what-s-new-in-python div.toctree-wrapper li.toctree-l1'
+    )
     result = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
-    for section in tqdm(sections_by_python, 'Собираем ссылки', colour='red'):
-        version_a_tag = find_tag(section, 'a')
+    for section in tqdm(
+            sections_by_python, Literals.COLLECTING_URLS, colour='red'
+    ):
         version_link = urljoin(
-            urljoin(MAIN_DOC_URL, 'whatsnew/'), version_a_tag['href']
+            urljoin(MAIN_DOC_URL, 'whatsnew/'),
+            find_tag(section, 'a')['href']
         )
-        response = get_response(session, version_link)
-        response.encoding = 'utf-8'
-        soup = BeautifulSoup(response.text, 'lxml')
-        h1 = find_tag(soup, 'h1')
-        dl = find_tag(soup, 'dl')
-        result.append((version_link, h1.text,
-                       dl.text.replace('\n', ' ').strip()))
+        soup = get_soup(session, version_link)
+        result.append((version_link, find_tag(soup, 'h1').text,
+                       find_tag(soup, 'dl').text.replace('\n', ' ').strip()))
     return result
 
 
@@ -60,28 +58,24 @@ def latest_versions(session: CachedSession) -> Optional[
      содержащий ссылку на документацию, версию, и статус версии.
 
     """
-    response = get_response(session, PEP_MAIN_URL)
-    response.encoding = 'utf-8'
-    soup = BeautifulSoup(response.text, 'lxml')
-    sidebar = find_tag(soup, 'div', {'class': 'sphinxsidebarwrapper'})
-    ul_tags = sidebar.find_all('ul')
+    soup = get_soup(session, MAIN_DOC_URL)
+    ul_tags = soup.select('div.sphinxsidebarwrapper > ul')
     for ul in ul_tags:
         if 'All versions' in ul.text:
             a_tags = ul.find_all('a')
             break
     else:
-        raise Exception('Не найден список c версиями Python')
+        raise RuntimeError(Literals.PYTHON_VERSIONS_NOT_FOUND)
     results = [('Ссылка на документацию', 'Версия', 'Статус')]
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
-    for a_tag in tqdm(a_tags, 'Собираем ссылки', colour='red'):
-        link = a_tag['href']
+    for a_tag in tqdm(a_tags, Literals.COLLECTING_URLS, colour='red'):
         text_match = re.search(pattern, a_tag.text)
         if text_match:
             version, status = text_match.groups()
         else:
             version, status = a_tag.text, ''
         results.append(
-            (link, version, status)
+            (a_tag['href'], version, status)
         )
     return results
 
@@ -96,21 +90,19 @@ def download(session: CachedSession) -> None:
     :returns: None
     """
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
-    response = get_response(session, downloads_url)
-    response.encoding = 'utf-8'
-    soup = BeautifulSoup(response.text, 'lxml')
-    main_div = find_tag(soup, 'div', attrs={'class': 'body', 'role': 'main'})
-    table = find_tag(main_div, 'table', {'class': 'docutils'})
-    pdf_a4_tag = find_tag(table, 'a', {'href': re.compile(r'.+?pdf-a4\.zip')})
-    archive_url = urljoin(downloads_url, pdf_a4_tag['href'])
+    soup = get_soup(session, downloads_url)
+    pdf_relative_url = soup.select_one(
+        'div.body > table.docutils a[href$="pdf-a4.zip"]'
+    )['href']
+    archive_url = urljoin(downloads_url, pdf_relative_url)
     filename = archive_url.split('/')[-1]
-    downloads_dir = BASE_DIR / 'downloads'
+    downloads_dir = BASE_DIR / PathConstants.DOWNLOADS_PATH
     downloads_dir.mkdir(exist_ok=True)
     archive_path = downloads_dir / filename
     response = get_response(session, archive_url)
     with open(archive_path, 'wb') as file:
         file.write(response.content)
-    logging.info(f'Архив был загружен и сохранён: {archive_path}')
+    logging.info(Literals.ARCHIVE_DOWNLOADED.format(archive_path))
 
 
 def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
@@ -124,45 +116,46 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
      содержащих статус и количество PEP с этим статусом.
 
     """
-    response = get_response(session, PEP_MAIN_URL)
-    soup = BeautifulSoup(response.text, 'lxml')
+    soup = get_soup(session, PEP_MAIN_URL)
     pep_relative_links = sorted(set(
         [url.get('href') for url in soup.select(
             'section#numerical-index .pep-zero-table.docutils.align-default a'
         )]))
     table_statuses = [
-        abbr.text[1:] for abbr in find_tag(
-            soup, 'section', attrs={'id': 'numerical-index'}
-        ).find(
-            class_='pep-zero-table docutils align-default'
-        ).find_all(
-            'abbr', string=re.compile(r'^\w*$')
+        abbr.text[1:] for abbr in soup.select(
+            'section#numerical-index .pep-zero-table.'
+            'docutils.align-default abbr'
         )
     ]
-    pep_status_codes = {}
-    results = [('Статус', 'Количество')]
-    for number, url in tqdm(enumerate(pep_relative_links),
-                            'Собираем статусы', colour='red'):
-        response = get_response(session, urljoin(PEP_MAIN_URL, url))
-        soup = BeautifulSoup(response.text, 'lxml')
-        page_status = soup.find(
-            class_='rfc2822 field-list simple'
-        ).find('abbr').text
+    pep_status_codes = defaultdict(int)
+    mismatches = []
+    for number, url in tqdm(
+            enumerate(pep_relative_links),
+            Literals.COLLECTING_STATUSES,
+            colour='red',
+            total=len(pep_relative_links)
+    ):
+        soup = get_soup(session, urljoin(PEP_MAIN_URL, url))
+        page_status = soup.select_one('#pep-content > dl abbr').text
         if (page_status and page_status not in
                 EXPECTED_STATUS.get(table_statuses[number])):
-            logging.warning(
-                'Несовпадающие статусы:\n'
-                f'{urljoin(PEP_MAIN_URL, url)}\n'
-                f'Статус в карточке: {page_status}\n'
-                f'Ожидаемые статусы:'
-                f' {EXPECTED_STATUS.get(table_statuses[number])}'
+            mismatches.append(
+                (url, page_status, table_statuses[number], number)
             )
-        if page_status not in pep_status_codes:
-            pep_status_codes[page_status] = 1
-        else:
-            pep_status_codes[page_status] += 1
-    results.extend(list(pep_status_codes.items()))
-    results.append(('Total', str(sum(pep_status_codes.values()))))
+        pep_status_codes[page_status] += 1
+    if mismatches:
+        for url, page_status, table_status, number in mismatches:
+            logging.warning(
+                Literals.UNEXPECTED_PEP_STATUS.format(
+                    urljoin(PEP_MAIN_URL, url), page_status,
+                    EXPECTED_STATUS.get(table_statuses[number])
+                )
+            )
+    results = [
+        ('Статус', 'Количество'),
+        *pep_status_codes.items(),
+        ('Итого', str(sum(pep_status_codes.values())))
+    ]
     return results
 
 
@@ -185,20 +178,22 @@ def main() -> None:
 
     :returns: None
     """
-
-    configure_logging()
-    logging.info('Парсер запущен')
-    arg_parser = configure_argument_parser(MODE_TO_FUNCTION.keys())
-    args = arg_parser.parse_args()
-    logging.info(f'Аргументы командной строки: {args}')
-    session = CachedSession()
-    if args.clear_cache:
-        session.cache.clear()
-    parser_mode = args.mode
-    results = MODE_TO_FUNCTION[parser_mode](session)
-    if results:
-        control_output(results, args)
-    logging.info('Парсер завершил работу')
+    try:
+        configure_logging()
+        logging.info(Literals.PARSER_STARTED)
+        arg_parser = configure_argument_parser(MODE_TO_FUNCTION.keys())
+        args = arg_parser.parse_args()
+        logging.info(Literals.PARSER_ARGS.format(args))
+        session = CachedSession()
+        if args.clear_cache:
+            session.cache.clear()
+        parser_mode = args.mode
+        results = MODE_TO_FUNCTION[parser_mode](session)
+        if results:
+            control_output(results, args)
+        logging.info(Literals.PARSER_FINISHED)
+    except Exception as error:
+        logging.exception(error)
 
 
 if __name__ == '__main__':
