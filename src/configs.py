@@ -13,7 +13,7 @@ def configure_argument_parser(
     """
     Настраивает ArgumentParser для командной строки.
 
-    :param modes: list[str] - Список режимов работы.
+    :param modes : dict[str, CachedSession].keys - Список режимов работы.
 
     :returns: ArgumentParser: - Сконфигурированный парсер аргументов
     командной строки.
@@ -33,7 +33,9 @@ def configure_argument_parser(
     parser.add_argument(
         '-o',
         '--output',
-        choices=UtilityConstants.PARSER_NONDEFAULT_OUTPUT_CHOICES,
+        choices=
+        (UtilityConstants.PRETTY_OUTPUT_MODE,
+         UtilityConstants.FILE_OUTPUT_MODE),
         help='Дополнительные способы вывода данных'
     )
     return parser
