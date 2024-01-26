@@ -1,5 +1,3 @@
-# Название этого файла — антипаттерн. Логичнее его было бы назвать, например,
-# services или helpers.
 from typing import Optional, Union
 
 from bs4 import BeautifulSoup, Tag
@@ -28,7 +26,7 @@ def get_response(
         return response
     except RequestException as error:
         raise ConnectionError(
-            Literals.REQUEST_EXCEPTION.format(url)
+            Literals.REQUEST_EXCEPTION.format(url, error)
         ) from error
 
 
@@ -49,13 +47,18 @@ def find_tag(soup: Union[BeautifulSoup, Tag], tag: str,
     return searched_tag
 
 
-def get_soup(session: CachedSession, url: str) -> BeautifulSoup:
+def get_soup(
+        session: CachedSession,
+        url: str,
+        parser: str = 'lxml'
+) -> BeautifulSoup:
     """
     Преобразует объект Response в BeautifulSoup.
 
     :param session: Объект Response, представляющий HTML-документ.
     :param url: URL веб-страницы.
+    :param parser: Имя парсера, используемого
+    для создания объекта BeautifulSoup.
     :return: Объект BeautifulSoup, представляющий HTML-документ.
     """
-    response = get_response(session, url)
-    return BeautifulSoup(response.text, 'lxml')
+    return BeautifulSoup(get_response(session, url).text, parser)
