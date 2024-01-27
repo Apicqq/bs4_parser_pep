@@ -13,7 +13,7 @@ from constants import (
     MAIN_DOC_URL, PEP_MAIN_URL, EXPECTED_STATUS, UtilityConstants
 )
 from outputs import control_output
-from utils import find_tag, get_response, get_soup
+from utils import find_tag, get_response, get_soup, manage_logging
 
 
 def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
@@ -27,6 +27,7 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
     содержащий ссылку на статью, заголовок, и её автора.
     """
     result = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
+    logger_stack = []
     for tag in tqdm(
         get_soup(
             session,
@@ -47,8 +48,9 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
                            find_tag(soup, 'dl').text.replace(
                                '\n', ' '
                            ).strip()))
-        except ConnectionError:
-            continue
+        except ConnectionError as error:
+            logger_stack.append(error)
+    manage_logging(logger_stack)
     return result
 
 
@@ -126,6 +128,7 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
      содержащих статус и количество PEP с этим статусом.
 
     """
+    logger_stack = []
     soup = get_soup(session, PEP_MAIN_URL)
     pep_relative_links = sorted(set(
         [url.get('href') for url in soup.select(
@@ -149,25 +152,21 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
         try:
             soup = get_soup(session, urljoin(PEP_MAIN_URL, url))
             page_status = soup.select_one('#pep-content > dl abbr').text
-            if (page_status and page_status not in
-                    EXPECTED_STATUS.get(table_statuses[number])):
-                # Сдвиг не лишний, без него возникает ошибка:
-                # PEP 8: E129 visually indented
-                # line with same indent as next logical line
+            if (
+                page_status and page_status not in
+                EXPECTED_STATUS.get(table_statuses[number])
+            ):
                 mismatches.append(
-                    (url, page_status, table_statuses[number], number)
+                    Literals.UNEXPECTED_PEP_STATUS.format(
+                        urljoin(PEP_MAIN_URL, url), page_status,
+                        EXPECTED_STATUS.get(table_statuses[number])
+                    )
                 )
             pep_status_codes[page_status] += 1
-        except ConnectionError:
-            continue
-    if mismatches:
-        for url, page_status, table_status, number in mismatches:
-            logging.warning(
-                Literals.UNEXPECTED_PEP_STATUS.format(
-                    urljoin(PEP_MAIN_URL, url), page_status,
-                    EXPECTED_STATUS.get(table_statuses[number])
-                )
-            )
+        except ConnectionError as error:
+            logger_stack.append(error)
+    logging.warning('\n'.join(mismatches))
+    manage_logging(logger_stack)
     return [
         ('Статус', 'Количество'),
         *pep_status_codes.items(),

@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Union
 
 from bs4 import BeautifulSoup, Tag
@@ -62,3 +63,15 @@ def get_soup(
     :return: Объект BeautifulSoup, представляющий HTML-документ.
     """
     return BeautifulSoup(get_response(session, url).text, parser)
+
+
+def manage_logging(stack: list[Exception]) -> list:
+    """
+    Вспомогательная функция логгирования, которая выводит
+    сообщения об ошибках в консоль.
+
+    :param stack: Список ошибок, накопленных во время выполнения функции.
+
+    :return: Список ошибок.
+    """
+    return list(map(lambda exception: logging.error(exception), stack))
