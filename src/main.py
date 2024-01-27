@@ -12,7 +12,6 @@ from constants import (
     Literals, PathConstants, BASE_DIR,
     MAIN_DOC_URL, PEP_MAIN_URL, EXPECTED_STATUS, UtilityConstants
 )
-from exceptions import ParserFindTagException
 from outputs import control_output
 from utils import find_tag, get_response, get_soup
 
