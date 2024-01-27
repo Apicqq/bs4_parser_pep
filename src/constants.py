@@ -25,7 +25,6 @@ class PathConstants:
 class UtilityConstants:
     PRETTY_OUTPUT_MODE = 'pretty'
     FILE_OUTPUT_MODE = 'file'
-    DEFAULT_OUTPUT_MODE = 'default'
     DATETIME_FORMAT = '%Y-%m-%d_%H-%M-%S'
     LOGGER_DT_FORMAT = '%d.%m.%Y %H:%M:%S'
     LOGGER_FORMAT = (
@@ -45,7 +44,7 @@ class Literals:
     PARSER_FINISHED = 'Работа парсера завершена'
     REQUEST_EXCEPTION = 'Возникла ошибка при загрузке страницы {}: {}'
     PYTHON_VERSIONS_NOT_FOUND = 'Не найден список c версиями Python'
-    TAG_NOT_FOUND = 'Не найден тег {} {}'
+    TAG_NOT_FOUND = 'Не найден тег {}. Найденное значение: {}'
     COLLECTING_URLS = 'Собираем ссылки'
     COLLECTING_STATUSES = 'Собираем статусы'
     PARSER_EXCEPTION = 'Во время работы парсера возникла ошибка: {}'
