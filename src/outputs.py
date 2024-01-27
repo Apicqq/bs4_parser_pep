@@ -62,7 +62,7 @@ def file_output(
 OUTPUT_MODES = {
     UtilityConstants.PRETTY_OUTPUT_MODE: pretty_output,
     UtilityConstants.FILE_OUTPUT_MODE: file_output,
-    UtilityConstants.DEFAULT_OUTPUT_MODE: default_output
+    None: default_output
 }
 
 
@@ -76,7 +76,5 @@ def control_output(results: list, cli_args: Namespace) -> None:
     :returns: None
     """
     output = cli_args.output
-    selected_output = OUTPUT_MODES.get(
-        output, OUTPUT_MODES.get(UtilityConstants.DEFAULT_OUTPUT_MODE)
-    )
+    selected_output = OUTPUT_MODES.get(output)
     selected_output(results, cli_args)

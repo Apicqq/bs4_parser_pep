@@ -12,6 +12,7 @@ from constants import (
     Literals, PathConstants, BASE_DIR,
     MAIN_DOC_URL, PEP_MAIN_URL, EXPECTED_STATUS, UtilityConstants
 )
+from exceptions import ParserFindTagException
 from outputs import control_output
 from utils import find_tag, get_response, get_soup
 
@@ -28,25 +29,27 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
     """
     result = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
     for tag in tqdm(
-            get_soup(
-                session,
-                urljoin(MAIN_DOC_URL, 'whatsnew/')
-            ).select(
-                '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
-            ),
-            Literals.COLLECTING_URLS,
-            colour=UtilityConstants.PROGRESS_BAR_COLOR
+        get_soup(
+            session,
+            urljoin(MAIN_DOC_URL, 'whatsnew/')
+        ).select(
+            '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
+        ),
+        Literals.COLLECTING_URLS,
+        colour=UtilityConstants.PROGRESS_BAR_COLOR
     ):
         version_link = urljoin(
             urljoin(MAIN_DOC_URL, 'whatsnew/'),
             tag.get('href')
         )
-        soup = get_soup(session, version_link)
-        result.append((version_link, find_tag(soup, 'h1').text,
-                       find_tag(soup, 'dl').text.replace(
-                           '\n', ' '
-                       ).strip()))
-        continue
+        try:
+            soup = get_soup(session, version_link)
+            result.append((version_link, find_tag(soup, 'h1').text,
+                           find_tag(soup, 'dl').text.replace(
+                               '\n', ' '
+                           ).strip()))
+        except ConnectionError:
+            continue
     return result
 
 
@@ -75,9 +78,9 @@ def latest_versions(session: CachedSession) -> Optional[
     results = [('Ссылка на документацию', 'Версия', 'Статус')]
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
     for a_tag in tqdm(
-            a_tags,
-            Literals.COLLECTING_URLS,
-            colour=UtilityConstants.PROGRESS_BAR_COLOR
+        a_tags,
+        Literals.COLLECTING_URLS,
+        colour=UtilityConstants.PROGRESS_BAR_COLOR
     ):
         text_match = re.search(pattern, a_tag.text)
         if text_match:
@@ -144,16 +147,20 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
         colour=UtilityConstants.PROGRESS_BAR_COLOR,
         total=len(pep_relative_links)
     ):
-        if not url:
+        try:
+            soup = get_soup(session, urljoin(PEP_MAIN_URL, url))
+            page_status = soup.select_one('#pep-content > dl abbr').text
+            if (page_status and page_status not in
+                    EXPECTED_STATUS.get(table_statuses[number])):
+                # Сдвиг не лишний, без него возникает ошибка:
+                # PEP 8: E129 visually indented
+                # line with same indent as next logical line
+                mismatches.append(
+                    (url, page_status, table_statuses[number], number)
+                )
+            pep_status_codes[page_status] += 1
+        except ConnectionError:
             continue
-        soup = get_soup(session, urljoin(PEP_MAIN_URL, url))
-        page_status = soup.select_one('#pep-content > dl abbr').text
-        if (page_status and page_status not in
-                EXPECTED_STATUS.get(table_statuses[number])):
-            mismatches.append(
-                (url, page_status, table_statuses[number], number)
-            )
-        pep_status_codes[page_status] += 1
     if mismatches:
         for url, page_status, table_status, number in mismatches:
             logging.warning(
@@ -203,7 +210,8 @@ def main() -> None:
             control_output(results, args)
         logging.info(Literals.PARSER_FINISHED)
     except Exception as error:
-        logging.exception(Literals.PARSER_EXCEPTION.format(error))
+        logging.exception(Literals.PARSER_EXCEPTION.format(error),
+                          stack_info=True)
 
 
 if __name__ == '__main__':
