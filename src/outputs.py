@@ -75,6 +75,4 @@ def control_output(results: list, cli_args: Namespace) -> None:
 
     :returns: None
     """
-    output = cli_args.output
-    selected_output = OUTPUT_MODES.get(output)
-    selected_output(results, cli_args)
+    OUTPUT_MODES.get(cli_args.output)(results, cli_args)
