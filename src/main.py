@@ -28,7 +28,6 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
     содержащий ссылку на статью, заголовок, и её автора.
     """
     result = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
-    error_log = []
     for tag in tqdm(
         get_soup(
             session,
@@ -49,12 +48,8 @@ def whats_new(session: CachedSession) -> Optional[list[tuple[str, str, str]]]:
                            find_tag(soup, 'dl').text.replace(
                                '\n', ' '
                            ).strip()))
-        except ConnectionError or ParserFindTagException as error:
-            if error not in error_log:
-                error_log.append(error)
-    if error_log:
-        for error in error_log:
-            logging.error(error)
+        except ConnectionError:
+            continue
     return result
 
 
@@ -132,7 +127,6 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
      содержащих статус и количество PEP с этим статусом.
 
     """
-    error_log = []
     soup = get_soup(session, PEP_MAIN_URL)
     pep_relative_links = sorted(set(
         [url.get('href') for url in soup.select(
@@ -158,18 +152,15 @@ def pep(session: CachedSession) -> Optional[list[tuple[str, str]]]:
             page_status = soup.select_one('#pep-content > dl abbr').text
             if (page_status and page_status not in
                     EXPECTED_STATUS.get(table_statuses[number])):
-                # Сдвиг не лишний — PEP 8: E129 visually indented
+                # Сдвиг не лишний, без него возникает ошибка:
+                # PEP 8: E129 visually indented
                 # line with same indent as next logical line
                 mismatches.append(
                     (url, page_status, table_statuses[number], number)
                 )
             pep_status_codes[page_status] += 1
-        except ConnectionError or ParserFindTagException as error:
-            if error not in error_log:
-                error_log.append(error)
-    if error_log:
-        for error in error_log:
-            logging.error(error)
+        except ConnectionError:
+            continue
     if mismatches:
         for url, page_status, table_status, number in mismatches:
             logging.warning(
@@ -219,7 +210,8 @@ def main() -> None:
             control_output(results, args)
         logging.info(Literals.PARSER_FINISHED)
     except Exception as error:
-        logging.exception(Literals.PARSER_EXCEPTION.format(error))
+        logging.exception(Literals.PARSER_EXCEPTION.format(error),
+                          stack_info=True)
 
 
 if __name__ == '__main__':
