@@ -44,7 +44,7 @@ class Literals:
     PARSER_FINISHED = 'Работа парсера завершена'
     REQUEST_EXCEPTION = 'Возникла ошибка при загрузке страницы {}: {}'
     PYTHON_VERSIONS_NOT_FOUND = 'Не найден список c версиями Python'
-    TAG_NOT_FOUND = 'Не найден тег {}. Найденное значение: {}'
+    TAG_NOT_FOUND = 'Не найден тег {} {}'
     COLLECTING_URLS = 'Собираем ссылки'
     COLLECTING_STATUSES = 'Собираем статусы'
     PARSER_EXCEPTION = 'Во время работы парсера возникла ошибка: {}'
